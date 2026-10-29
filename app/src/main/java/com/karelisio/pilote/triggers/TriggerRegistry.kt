@@ -5,6 +5,7 @@ import com.karelisio.pilote.data.ProfileRepository
 import com.karelisio.pilote.engine.FactsHub
 import com.karelisio.pilote.model.Profile
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -73,6 +74,11 @@ class TriggerRegistry(
         monitorsRunning = true
         monitors.forEach { runCatching { it.start() } }
         appUsage.enabled = latest.any { it.enabled && it.usesAppTrigger }
+        // Bluetooth profile proxies answer asynchronously: give them a moment before evaluating.
+        scope.launch {
+            delay(1_500)
+            if (monitorsRunning) facts.setReady(true)
+        }
     }
 
     /** Restart listeners whose permission may have just been granted. */
@@ -83,6 +89,7 @@ class TriggerRegistry(
 
     fun stopMonitors() {
         monitorsRunning = false
+        facts.setReady(false)
         monitors.forEach { runCatching { it.stop() } }
         appUsage.enabled = false
     }

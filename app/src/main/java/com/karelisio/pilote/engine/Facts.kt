@@ -12,6 +12,8 @@ data class BtDevice(val address: String, val name: String, val kind: BtDeviceKin
 
 /** Snapshot of everything the triggers can observe. */
 data class Facts(
+    /** False until the listeners have reported their initial state (avoids false deactivations). */
+    val ready: Boolean = false,
     val tick: Long = System.currentTimeMillis(),
     val insideGeofences: Set<String> = emptySet(),
     val bluetooth: Set<BtDevice> = emptySet(),
@@ -30,6 +32,8 @@ class FactsHub(private val runtime: RuntimeStore) {
     val state: StateFlow<Facts> = _state.asStateFlow()
 
     fun tick() = _state.update { it.copy(tick = System.currentTimeMillis()) }
+
+    fun setReady(ready: Boolean) = _state.update { it.copy(ready = ready) }
 
     fun setGeofence(id: String, inside: Boolean) {
         val next = runtime.insideGeofences.let { if (inside) it + id else it - id }

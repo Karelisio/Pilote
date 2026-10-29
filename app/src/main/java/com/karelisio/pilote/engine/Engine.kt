@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -74,7 +75,7 @@ class Engine(
         scope.launch {
             combine(profiles.profiles, facts.state, settings.paused, _tests) { list, f, paused, tests ->
                 Inputs(list, f, paused, tests)
-            }.collect { onInputs(it) }
+            }.filter { it.facts.ready }.collect { onInputs(it) }
         }
     }
 
@@ -99,7 +100,8 @@ class Engine(
             }
             if (waiting != null && waiting.first == raw) continue
             waiting?.second?.cancel()
-            val debounce = p.debounceSeconds
+            // Anti-bounce applies when leaving a profile (e.g. car Bluetooth dropping for a few seconds).
+            val debounce = if (raw) 0 else p.debounceSeconds
             if (testing || input.paused || !p.enabled || debounce <= 0) {
                 pending.remove(p.id)
                 immediate[p.id] = raw

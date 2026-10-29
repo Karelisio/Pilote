@@ -167,6 +167,7 @@ class ToggleManualAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val id = parameters[ProfileKey] ?: return
         PiloteApp.graph(context).engine.toggleManual(id)
+        com.karelisio.pilote.service.PiloteService.start(context)
     }
 
     companion object {

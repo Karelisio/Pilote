@@ -90,6 +90,7 @@ abstract class ProfileTileBase(private val slot: Int) : BaseTile() {
         scope.launch {
             val p = profile() ?: return@launch
             graph.engine.toggleManual(p.id)
+            com.karelisio.pilote.service.PiloteService.start(this@ProfileTileBase)
             render()
         }
     }
