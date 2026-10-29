@@ -76,6 +76,7 @@ private fun triggerHelp(t: Trigger) = when (t) {
     is Trigger.Wifi -> "Connecté à un réseau précis"
     is Trigger.Charging -> "Chargeur branché (ou débranché si inversé)"
     is Trigger.AppOpen -> "Une appli est au premier plan"
+    is Trigger.Boot -> "Au démarrage du téléphone, pendant quelques minutes"
     is Trigger.Manual -> "Bouton dans l'appli, tuile et widget"
 }
 
@@ -115,6 +116,14 @@ fun TriggerEditSheet(
                 is Trigger.AppOpen -> AppPicker(t.packageName) { app -> trigger = t.copy(packageName = app.packageName, label = app.label) }
                 is Trigger.WiredHeadset -> Help("Actif tant qu'un casque filaire (jack ou USB-C) est branché.")
                 is Trigger.Charging -> Help("Actif tant que le téléphone est en charge. Inversez pour « chargeur débranché ».")
+                is Trigger.Boot -> {
+                    Help("Actif juste après l'allumage du téléphone. Pilote démarre seule au boot.")
+                    LabeledSlider(
+                        label = "Durée", value = "${t.minutes} min", hint = "Temps pendant lequel le déclencheur reste rempli",
+                        current = t.minutes.toFloat(), range = 1f..60f, steps = 0,
+                        onChange = { trigger = t.copy(minutes = it.toInt().coerceAtLeast(1)) },
+                    )
+                }
                 is Trigger.Manual -> Help("Activez ce profil à la main : raccourci de l'accueil, tuile des réglages rapides ou widget.")
             }
             Spacer(Modifier.height(8.dp))
@@ -148,6 +157,7 @@ private fun Trigger.withNegate(v: Boolean): Trigger = when (this) {
     is Trigger.Wifi -> copy(negate = v)
     is Trigger.Charging -> copy(negate = v)
     is Trigger.AppOpen -> copy(negate = v)
+    is Trigger.Boot -> copy(negate = v)
     is Trigger.Manual -> copy(negate = v)
 }
 

@@ -13,7 +13,6 @@ import com.karelisio.pilote.data.SettingsStore
 import com.karelisio.pilote.engine.Engine
 import com.karelisio.pilote.engine.FactsHub
 import com.karelisio.pilote.integrations.AppLauncher
-import com.karelisio.pilote.integrations.StatusIntegration
 import com.karelisio.pilote.shizuku.ShizukuManager
 import com.karelisio.pilote.surfaces.SurfaceUpdater
 import com.karelisio.pilote.triggers.TriggerRegistry
@@ -35,9 +34,8 @@ class AppGraph(app: Application) {
     val history = HistoryRepository(db.history())
     val facts = FactsHub(runtime)
     val shizuku = ShizukuManager(app)
-    val status = StatusIntegration(app)
     val launcher = AppLauncher(app)
-    val executor = ActionExecutor(app, SystemController(app), AdvancedController(app, shizuku), status, launcher)
+    val executor = ActionExecutor(app, SystemController(app), AdvancedController(app, shizuku), launcher)
     val engine = Engine(appScope, profiles, facts, executor, runtime, db.baselines(), history, settings)
     val registry = TriggerRegistry(app, appScope, profiles, facts)
     val surfaces = SurfaceUpdater(app, appScope, engine, profiles, settings)

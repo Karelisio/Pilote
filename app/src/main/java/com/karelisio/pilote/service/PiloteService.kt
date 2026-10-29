@@ -33,6 +33,7 @@ class PiloteService : LifecycleService() {
         super.onCreate()
         startInForeground(buildNotification(emptyList(), paused = false))
         graph.registry.startMonitors()
+        Watchdog.schedule(this)
         lifecycleScope.launch {
             combine(graph.engine.active, graph.settings.paused) { active, paused -> active to paused }
                 .collect { (active, paused) ->
@@ -52,6 +53,7 @@ class PiloteService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        Watchdog.schedule(this)
         return START_STICKY
     }
 

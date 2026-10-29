@@ -2,13 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Same signature permission as Status (both apps are signed with the same key). -->
-    <permission
-        android:name="com.karelisio.status.permission.APPLY_PRESET"
-        android:label="Appliquer un préréglage Status"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="com.karelisio.status.permission.APPLY_PRESET" />
-
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -23,6 +16,7 @@
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission
         android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
@@ -45,9 +39,7 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
-        <package android:name="com.karelisio.status" />
         <package android:name="com.karelisio.rushio" />
-        <provider android:authorities="com.karelisio.status.presets" />
     </queries>
 
     <application
@@ -90,6 +82,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
@@ -97,6 +90,7 @@
             </intent-filter>
         </receiver>
         <receiver android:name=".service.ControlReceiver" android:exported="false" />
+        <receiver android:name=".service.WatchdogReceiver" android:exported="false" />
         <receiver android:name=".triggers.TimeAlarmReceiver" android:exported="false" />
         <receiver android:name=".triggers.GeofenceReceiver" android:exported="false" />
         <receiver android:name=".update.InstallResultReceiver" android:exported="false" />

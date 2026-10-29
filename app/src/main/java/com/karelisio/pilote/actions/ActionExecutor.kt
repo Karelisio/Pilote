@@ -11,7 +11,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import com.karelisio.pilote.R
 import com.karelisio.pilote.integrations.AppLauncher
-import com.karelisio.pilote.integrations.StatusIntegration
 import com.karelisio.pilote.model.Action
 import com.karelisio.pilote.model.RingerMode
 import com.karelisio.pilote.util.Channels
@@ -29,9 +28,10 @@ class ActionExecutor(
     private val context: Context,
     val system: SystemController,
     val advanced: AdvancedController,
-    private val status: StatusIntegration,
     private val launcher: AppLauncher,
 ) {
+    private val caffeine = Caffeine(context)
+
     private val shizukuReason = "Nécessite Shizuku ou Shevery actif et autorisé (écran Accès avancé)"
 
     fun availability(action: Action): Availability = when (action) {
@@ -52,11 +52,13 @@ class ActionExecutor(
         is Action.Notify ->
             if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) Availability.OK
             else Availability.missing("Autorisez les notifications")
-        is Action.StatusPreset -> when {
-            !status.isInstalled() -> Availability.missing("Status n'est pas installée")
-            !status.hasPermission() -> Availability.missing("Status doit être signée avec la même clé que Pilote")
-            else -> Availability.OK
-        }
+        is Action.AnimationScale ->
+            if (advanced.shizukuReady || advanced.hasSecureSettings) Availability.OK
+            else Availability.missing("Nécessite Shizuku/Shevery ou WRITE_SECURE_SETTINGS accordé par ADB")
+        is Action.RefreshRate ->
+            if (advanced.shizukuReady || advanced.hasSecureSettings) Availability.OK
+            else Availability.missing("Nécessite Shizuku/Shevery ou WRITE_SECURE_SETTINGS accordé par ADB")
+        is Action.Caffeine -> Availability.OK
     }
 
     suspend fun apply(action: Action): Result<Unit> = withContext(Dispatchers.Default) {
@@ -77,7 +79,9 @@ class ActionExecutor(
             is Action.LaunchApp -> runCatching { withContext(Dispatchers.Main) { launcher.launch(action.packageName, action.label) } }
             Action.MediaPlay -> runCatching { playMedia() }
             is Action.Notify -> runCatching { notifyInfo(action) }
-            is Action.StatusPreset -> runCatching { status.applyPreset(action.presetId) }
+            is Action.AnimationScale -> advanced.setAnimationScale(action.scale)
+            is Action.RefreshRate -> advanced.setRefreshRate(action)
+            is Action.Caffeine -> runCatching { caffeine.set(action.enabled) }
         }
     }
 
@@ -96,6 +100,9 @@ class ActionExecutor(
                 is Action.MobileData -> advanced.captureMobileData()
                 is Action.DarkMode -> advanced.captureDarkMode()
                 is Action.PrivateDns -> advanced.capturePrivateDns()
+                is Action.AnimationScale -> advanced.captureAnimationScale()
+                is Action.RefreshRate -> advanced.captureRefreshRate()
+                is Action.Caffeine -> Action.Caffeine(caffeine.isOn)
                 else -> null
             }
         }.getOrNull()

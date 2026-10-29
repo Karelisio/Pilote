@@ -14,14 +14,12 @@ Tout reste sur le téléphone (Room). Pas de compte, pas de serveur, pas de Play
 
 ### 1. Keystore et secrets GitHub
 
-Pilote doit être signée avec **le même keystore que Status**, pour deux raisons :
-- la permission de signature partagée entre les deux applis ;
-- les mises à jour : Android refuse d'installer un APK signé avec une autre clé.
+Pilote doit toujours être signée avec **le même keystore** : Android refuse d'installer une mise à jour signée avec une autre clé.
 
-1. Encodez le keystore existant de Status en base64 :
+1. Encodez le keystore en base64 :
    ```bash
-   base64 -w0 status-release.jks > keystore.b64      # Linux
-   base64 -i status-release.jks -o keystore.b64      # macOS
+   base64 -w0 release.jks > keystore.b64      # Linux
+   base64 -i release.jks -o keystore.b64      # macOS
    ```
 2. Dans **GitHub → Settings → Secrets and variables → Actions → Repository secrets**, créez :
 
@@ -103,42 +101,11 @@ Réglages → **Batterie et Honor** :
 
 Les actions indisponibles apparaissent grisées, avec la raison.
 
-### 7. Intégration Status (à implémenter côté Status)
-
-Pilote parle à Status (`com.karelisio.status`) ainsi :
-
-1. **Permission de signature**, déclarée à l'identique dans les deux manifestes (Pilote la déclare déjà) :
-   ```xml
-   <permission
-       android:name="com.karelisio.status.permission.APPLY_PRESET"
-       android:protectionLevel="signature" />
-   ```
-2. **Récepteur** dans Status, protégé par cette permission :
-   ```xml
-   <receiver
-       android:name=".ApplyPresetReceiver"
-       android:exported="true"
-       android:permission="com.karelisio.status.permission.APPLY_PRESET">
-       <intent-filter>
-           <action android:name="com.karelisio.status.action.APPLY_PRESET" />
-       </intent-filter>
-   </receiver>
-   <uses-permission android:name="com.karelisio.status.permission.APPLY_PRESET" />
-   ```
-   Pilote envoie un broadcast explicite (`setPackage("com.karelisio.status")`) avec l'action `com.karelisio.status.action.APPLY_PRESET` et l'extra `"preset"` (String). Le broadcast est restreint aux destinataires qui détiennent la permission.
-3. **ContentProvider** pour lister les préréglages :
-   - autorité : `com.karelisio.status.presets` ;
-   - URI : `content://com.karelisio.status.presets/presets` ;
-   - colonnes : `id` (ou `_id`) et `name` ;
-   - à protéger par `android:readPermission="com.karelisio.status.permission.APPLY_PRESET"`.
-
-Si Status n'est pas installée, l'action « Préréglage Status » est masquée.
-
-### 8. Rushio
+### 7. Rushio
 
 Le modèle **Voiture** contient l'action « Ouvrir Rushio ». Le paquet par défaut est `com.karelisio.rushio`, modifiable dans Réglages → Intégrations.
 
-### 9. Tuiles et widget
+### 8. Tuiles et widget
 
 - **Tuiles** : modifiez les réglages rapides et ajoutez la tuile **Pilote** (pause globale) et les tuiles **Profil manuel 1 à 5**. Chaque tuile prend le nom du profil manuel correspondant, par ordre de priorité.
 - **Widget** : appui long sur l'écran d'accueil → Widgets → Pilote. Il affiche le profil actif et un bouton par profil manuel, et se redimensionne.
@@ -147,6 +114,9 @@ Le modèle **Voiture** contient l'action « Ouvrir Rushio ». Le paquet par déf
 
 ## Fonctionnement
 
+- **Démarrage automatique** : Pilote se lance seule à l'allumage du téléphone. Une alarme de surveillance la relance toutes les 15 min si le système l'a fermée (pensez quand même aux réglages Honor ci-dessus).
+- **Déclencheur « Allumage de l'appareil »** : rempli pendant N minutes après le démarrage.
+- **Actions d'affichage** : caféine (écran toujours allumé), fréquence d'écran (60/90/120 Hz/auto) et échelle des animations. Les deux dernières passent par Shizuku/Shevery ou `WRITE_SECURE_SETTINGS`.
 - **Profils** = déclencheurs (ET/OU) + conditions (ET/OU) + actions. Chaque déclencheur peut être inversé (ex. « chargeur débranché »).
 - **Priorités** : pour chaque réglage, le profil actif le plus prioritaire l'emporte. Quand il se termine, le profil précédent reprend la main.
 - **Restauration** : avant qu'un profil prenne le contrôle d'un réglage, Pilote mémorise la valeur (snapshot). Quand plus aucun profil ne contrôle ce réglage, la valeur est restaurée.

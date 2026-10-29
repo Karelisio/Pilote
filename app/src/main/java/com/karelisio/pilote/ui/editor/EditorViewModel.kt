@@ -40,6 +40,7 @@ class EditorViewModel(private val graph: AppGraph, private val profileId: Long, 
         is Trigger.Wifi -> t.copy(id = newId())
         is Trigger.Charging -> t.copy(id = newId())
         is Trigger.AppOpen -> t.copy(id = newId())
+        is Trigger.Boot -> t.copy(id = newId())
         is Trigger.Manual -> t.copy(id = newId())
     }
 

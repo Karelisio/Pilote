@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.AdminPanelSettings
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Info
@@ -145,14 +144,6 @@ fun SettingsScreen(
             item {
                 Group(Modifier.cascade(2)) {
                     SettingRow(Icons.AutoMirrored.Rounded.OpenInNew, "Rushio", "Paquet : $rushio", onClick = { editRushio = true })
-                    SettingRow(
-                        Icons.Rounded.AutoAwesome, "Status",
-                        when {
-                            !graph.status.isInstalled() -> "Non installée : l'action est masquée"
-                            !graph.status.hasPermission() -> "Installée, mais signée avec une autre clé"
-                            else -> "Connectée : préréglages disponibles"
-                        },
-                    )
                 }
             }
             item { SectionHeader("Profils") }

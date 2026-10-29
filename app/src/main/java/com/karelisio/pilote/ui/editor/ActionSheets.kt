@@ -43,10 +43,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.karelisio.pilote.actions.describe
+import com.karelisio.pilote.actions.formatScale
 import com.karelisio.pilote.actions.formatSeconds
 import com.karelisio.pilote.actions.label
 import com.karelisio.pilote.actions.title
-import com.karelisio.pilote.integrations.StatusPresetInfo
 import com.karelisio.pilote.model.Action
 import com.karelisio.pilote.model.AudioStream
 import com.karelisio.pilote.model.DndMode
@@ -60,14 +60,12 @@ import com.karelisio.pilote.ui.components.rememberHaptics
 fun AddActionSheet(onDismiss: () -> Unit, onPick: (Action) -> Unit) {
     val graph = LocalGraph.current
     val rushio by graph.settings.rushioPackage.collectAsStateWithLifecycle(initialValue = "")
-    val statusInstalled = remember { graph.status.isInstalled() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState()).navigationBarsPadding()) {
             Text("Ajouter une action", style = MaterialTheme.typography.titleLargeEmphasized)
             ActionGroups.forEach { group ->
                 SectionHeader(group.title)
-                val protos = group.actions.filter { it !is Action.StatusPreset || statusInstalled }
-                protos.forEach { proto ->
+                group.actions.forEach { proto ->
                     val availability = graph.executor.availability(proto)
                     ListItem(
                         headlineContent = { Text(proto.title()) },
@@ -167,7 +165,26 @@ fun ActionEditSheet(
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(a.text, { action = a.copy(text = it) }, label = { Text("Texte") }, modifier = Modifier.fillMaxWidth())
                 }
-                is Action.StatusPreset -> StatusPresetPicker(a) { action = it }
+                is Action.AnimationScale -> FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(0f, 0.5f, 1f, 1.5f, 2f).forEach { v ->
+                        FilterChip(
+                            selected = a.scale == v, onClick = { action = a.copy(scale = v) },
+                            label = { Text(if (v == 0f) "Désactivées" else "×" + formatScale(v)) },
+                        )
+                    }
+                }
+                is Action.RefreshRate -> FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(0, 60, 90, 120, 144).forEach { v ->
+                        FilterChip(
+                            selected = a.hz == v, onClick = { action = Action.RefreshRate(hz = v) },
+                            label = { Text(if (v == 0) "Auto" else "$v Hz") },
+                        )
+                    }
+                }
+                is Action.Caffeine -> Text(
+                    "L'écran reste allumé tant que le profil est actif, puis se remet en veille normalement.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             Text(
                 "Résumé : " + action.describe(),
@@ -186,7 +203,6 @@ fun ActionEditSheet(
 
 private fun Action.isComplete(): Boolean = when (this) {
     is Action.LaunchApp -> packageName.isNotBlank()
-    is Action.StatusPreset -> presetId.isNotBlank()
     is Action.PrivateDns -> mode != PrivateDnsMode.HOSTNAME || host.isNotBlank()
     else -> true
 }
@@ -201,29 +217,6 @@ private fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, o
                 onClick = { haptics.tick(); onSelect(o) },
                 shape = SegmentedButtonDefaults.itemShape(i, options.size),
             ) { Text(label(o), maxLines = 1) }
-        }
-    }
-}
-
-@Composable
-private fun StatusPresetPicker(a: Action.StatusPreset, onChange: (Action.StatusPreset) -> Unit) {
-    val graph = LocalGraph.current
-    val presets by produceState<List<StatusPresetInfo>?>(null) { value = graph.status.presets() }
-    val list = presets
-    when {
-        list == null -> LoadingIndicator()
-        list.isEmpty() -> Text(
-            "Aucun préréglage reçu de Status. Vérifiez que Status est à jour et signée avec la même clé.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        else -> list.forEach { p ->
-            Row(
-                Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable { onChange(a.copy(presetId = p.id, label = p.name)) },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(selected = a.presetId == p.id, onClick = { onChange(a.copy(presetId = p.id, label = p.name)) })
-                Text(p.name)
-            }
         }
     }
 }

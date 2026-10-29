@@ -6,11 +6,14 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
+import android.hardware.display.DisplayManager
 import android.provider.Settings
+import android.view.Display
 import androidx.core.content.getSystemService
 import com.karelisio.pilote.model.Action
 import com.karelisio.pilote.model.PrivateDnsMode
 import com.karelisio.pilote.shizuku.ShizukuManager
+import kotlin.math.roundToInt
 
 /**
  * Settings that need elevated access: through Shizuku/Shevery (shell commands) or,
@@ -99,7 +102,72 @@ class AdvancedController(private val context: Context, private val shizuku: Shiz
         )
     }
 
+    private val animationKeys = listOf(
+        Settings.Global.WINDOW_ANIMATION_SCALE,
+        Settings.Global.TRANSITION_ANIMATION_SCALE,
+        Settings.Global.ANIMATOR_DURATION_SCALE,
+    )
+
+    suspend fun setAnimationScale(scale: Float): Result<Unit> {
+        if (hasSecureSettings) {
+            val direct = runCatching { animationKeys.forEach { Settings.Global.putFloat(context.contentResolver, it, scale) } }
+            if (direct.isSuccess) return direct
+        }
+        return shell(animationKeys.joinToString(" && ") { "settings put global $it $scale" }).map { }
+    }
+
+    fun captureAnimationScale() = Action.AnimationScale(
+        runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }.getOrDefault(1f)
+    )
+
+    private val maxRefreshRate: Int
+        get() = runCatching {
+            context.getSystemService<DisplayManager>()!!.getDisplay(Display.DEFAULT_DISPLAY).supportedModes.maxOf { it.refreshRate }.roundToInt()
+        }.getOrDefault(120)
+
+    /** Reads a (possibly hidden) system setting; null when unset. */
+    private suspend fun getSystem(key: String): String? {
+        val direct = runCatching { Settings.System.getString(context.contentResolver, key) }
+        val value = if (direct.isSuccess) direct.getOrNull() else shell("settings get system $key").getOrNull()?.trim()
+        return value?.takeUnless { it.isBlank() || it == "null" }
+    }
+
+    /** Writes or deletes (value = null) a system setting, directly if allowed, else through Shizuku. */
+    private suspend fun putSystem(key: String, value: String?): Result<Unit> {
+        if (hasSecureSettings && value != null) {
+            val direct = runCatching { check(Settings.System.putString(context.contentResolver, key, value)) }
+            if (direct.isSuccess) return direct
+        }
+        return shell(if (value == null) "settings delete system $key" else "settings put system $key $value").map { }
+    }
+
+    suspend fun setRefreshRate(action: Action.RefreshRate): Result<Unit> = runCatching {
+        if (action.restore) {
+            putSystem(PEAK_REFRESH, action.rawPeak).getOrThrow()
+            putSystem(MIN_REFRESH, action.rawMin).getOrThrow()
+            if (action.rawUser != null) putSystem(HONOR_REFRESH, action.rawUser).getOrThrow()
+            return@runCatching
+        }
+        val peak = if (action.hz == 0) maxRefreshRate else action.hz
+        putSystem(PEAK_REFRESH, "$peak.0").getOrThrow()
+        putSystem(MIN_REFRESH, if (action.hz == 0) null else "${action.hz}.0").getOrThrow()
+        // Honor / MagicOS keeps its own user choice: update it when present.
+        if (getSystem(HONOR_REFRESH) != null) putSystem(HONOR_REFRESH, "$peak").getOrThrow()
+    }
+
+    suspend fun captureRefreshRate() = Action.RefreshRate(
+        hz = 0,
+        rawPeak = getSystem(PEAK_REFRESH),
+        rawMin = getSystem(MIN_REFRESH),
+        rawUser = getSystem(HONOR_REFRESH),
+        restore = true,
+    )
+
     companion object {
+        private const val PEAK_REFRESH = "peak_refresh_rate"
+        private const val MIN_REFRESH = "min_refresh_rate"
+        private const val HONOR_REFRESH = "user_refresh_rate"
+
         const val ADB_GRANT_COMMAND = "adb shell pm grant com.karelisio.pilote android.permission.WRITE_SECURE_SETTINGS"
     }
 }

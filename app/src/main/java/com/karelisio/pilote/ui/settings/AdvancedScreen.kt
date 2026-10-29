@@ -138,7 +138,7 @@ fun AdvancedScreen(onBack: () -> Unit) {
             item {
                 Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.cascade(2)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        listOf(Action.Wifi(), Action.Bluetooth(), Action.MobileData(), Action.DarkMode(), Action.PrivateDns()).forEach { a ->
+                        listOf(Action.Wifi(), Action.Bluetooth(), Action.MobileData(), Action.DarkMode(), Action.PrivateDns(), Action.RefreshRate(), Action.AnimationScale()).forEach { a ->
                             val availability = graph.executor.availability(a)
                             Column(Modifier.alpha(if (availability.available) 1f else 0.6f)) {
                                 StatusLine(availability.available, a.title())

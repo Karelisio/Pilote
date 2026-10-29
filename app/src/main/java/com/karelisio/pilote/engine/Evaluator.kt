@@ -4,6 +4,7 @@ import com.karelisio.pilote.model.BtKind
 import com.karelisio.pilote.model.Logic
 import com.karelisio.pilote.model.Profile
 import com.karelisio.pilote.model.Trigger
+import android.os.SystemClock
 import java.time.ZonedDateTime
 
 data class TriggerResult(val trigger: Trigger, val matched: Boolean, val label: String)
@@ -23,9 +24,14 @@ fun geofenceId(profileId: Long, trigger: Trigger.Location) = "$profileId:${trigg
 /** Pure evaluation of a profile against the current facts. */
 object Evaluator {
 
-    fun evaluate(profile: Profile, facts: Facts, now: ZonedDateTime = ZonedDateTime.now()): Evaluation {
-        val t = profile.triggers.map { result(profile, it, facts, now) }
-        val c = profile.conditions.map { result(profile, it, facts, now) }
+    fun evaluate(
+        profile: Profile,
+        facts: Facts,
+        now: ZonedDateTime = ZonedDateTime.now(),
+        sinceBootMs: Long = SystemClock.elapsedRealtime(),
+    ): Evaluation {
+        val t = profile.triggers.map { result(profile, it, facts, now, sinceBootMs) }
+        val c = profile.conditions.map { result(profile, it, facts, now, sinceBootMs) }
         val triggersOk = when {
             t.isEmpty() -> c.isNotEmpty()
             profile.triggerLogic == Logic.ALL -> t.all { it.matched }
@@ -39,13 +45,14 @@ object Evaluator {
         return Evaluation(triggersOk && conditionsOk, t, c)
     }
 
-    private fun result(profile: Profile, trigger: Trigger, facts: Facts, now: ZonedDateTime): TriggerResult {
-        val raw = matches(profile, trigger, facts, now)
+    private fun result(profile: Profile, trigger: Trigger, facts: Facts, now: ZonedDateTime, sinceBootMs: Long): TriggerResult {
+        val raw = matches(profile, trigger, facts, now, sinceBootMs)
         val matched = if (trigger.negate) !raw else raw
         return TriggerResult(trigger, matched, describe(trigger))
     }
 
-    fun matches(profile: Profile, trigger: Trigger, facts: Facts, now: ZonedDateTime): Boolean = when (trigger) {
+    fun matches(profile: Profile, trigger: Trigger, facts: Facts, now: ZonedDateTime, sinceBootMs: Long): Boolean = when (trigger) {
+        is Trigger.Boot -> sinceBootMs < trigger.minutes * 60_000L
         is Trigger.Location -> trigger.isSet && geofenceId(profile.id, trigger) in facts.insideGeofences
         is Trigger.Time -> timeMatches(trigger, now)
         is Trigger.Bluetooth -> when (trigger.kind) {
@@ -88,6 +95,7 @@ object Evaluator {
             is Trigger.Wifi -> "Wi-Fi : ${trigger.ssid.ifBlank { "?" }}"
             is Trigger.Charging -> "En charge"
             is Trigger.AppOpen -> "Appli : ${trigger.label.ifBlank { trigger.packageName }}"
+            is Trigger.Boot -> "Allumage (pendant ${trigger.minutes} min)"
             is Trigger.Manual -> "Manuel"
         }
         return if (trigger.negate) "Pas : $base" else base

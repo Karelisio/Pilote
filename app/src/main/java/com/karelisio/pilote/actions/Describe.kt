@@ -49,7 +49,9 @@ fun Action.title(): String = when (this) {
     is Action.LaunchApp -> "Ouvrir une appli"
     Action.MediaPlay -> "Lancer la lecture"
     is Action.Notify -> "Notification"
-    is Action.StatusPreset -> "Préréglage Status"
+    is Action.AnimationScale -> "Échelle des animations"
+    is Action.RefreshRate -> "Fréquence d'écran"
+    is Action.Caffeine -> "Caféine"
 }
 
 fun Action.describe(): String = when (this) {
@@ -67,8 +69,12 @@ fun Action.describe(): String = when (this) {
     is Action.LaunchApp -> "Ouvrir ${label.ifBlank { packageName }}"
     Action.MediaPlay -> "Lecture média"
     is Action.Notify -> "Notification « ${title.ifBlank { text }} »"
-    is Action.StatusPreset -> "Status : ${label.ifBlank { presetId }}"
+    is Action.AnimationScale -> if (scale == 0f) "Animations désactivées" else "Animations ×${formatScale(scale)}"
+    is Action.RefreshRate -> if (restore) "Fréquence d'écran précédente" else if (hz == 0) "Fréquence d'écran auto" else "Écran $hz Hz"
+    is Action.Caffeine -> if (enabled) "Écran toujours allumé" else "Caféine désactivée"
 }
+
+fun formatScale(s: Float): String = if (s % 1f == 0f) s.toInt().toString() else s.toString().replace('.', ',')
 
 fun formatSeconds(s: Int): String = when {
     s < 60 -> "$s s"

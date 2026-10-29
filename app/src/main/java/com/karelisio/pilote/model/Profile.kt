@@ -105,6 +105,14 @@ sealed interface Trigger {
         val label: String = "",
     ) : Trigger
 
+    /** Device turned on: active during [minutes] after boot. */
+    @Serializable @SerialName("boot")
+    data class Boot(
+        override val id: String = newId(),
+        override val negate: Boolean = false,
+        val minutes: Int = 5,
+    ) : Trigger
+
     @Serializable @SerialName("manual")
     data class Manual(
         override val id: String = newId(),
@@ -214,8 +222,27 @@ sealed interface Action {
         override val key get() = null
     }
 
-    @Serializable @SerialName("status_preset")
-    data class StatusPreset(val presetId: String = "", val label: String = "") : Action {
-        override val key get() = null
+    /** Window, transition and animator scales (0 = no animations). */
+    @Serializable @SerialName("animation_scale")
+    data class AnimationScale(val scale: Float = 0.5f) : Action {
+        override val key get() = "animation_scale"
+    }
+
+    /** Screen refresh rate in Hz; 0 = automatic (highest available). Raw values are used to restore. */
+    @Serializable @SerialName("refresh_rate")
+    data class RefreshRate(
+        val hz: Int = 60,
+        val rawPeak: String? = null,
+        val rawMin: String? = null,
+        val rawUser: String? = null,
+        val restore: Boolean = false,
+    ) : Action {
+        override val key get() = "refresh_rate"
+    }
+
+    /** Keeps the screen on while the profile is active. */
+    @Serializable @SerialName("caffeine")
+    data class Caffeine(val enabled: Boolean = true) : Action {
+        override val key get() = "caffeine"
     }
 }
