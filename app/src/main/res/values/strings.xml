@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pilote</string>
+    <string name="widget_label">Pilote</string>
+    <string name="widget_description">Profil actif et profils manuels</string>
+    <string name="tile_pilote">Pilote</string>
+    <string name="tile_profile_1">Profil manuel 1</string>
+    <string name="tile_profile_2">Profil manuel 2</string>
+    <string name="tile_profile_3">Profil manuel 3</string>
+    <string name="tile_profile_4">Profil manuel 4</string>
+    <string name="tile_profile_5">Profil manuel 5</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pilote_indigo">#4355B9</color>
+    <color name="pilote_indigo_dark">#2A3A9C</color>
+    <color name="pilote_coral">#FFB4A1</color>
+    <color name="splash_background">#F8F8FF</color>
+    <color name="splash_icon_background">#4355B9</color>
+</resources>

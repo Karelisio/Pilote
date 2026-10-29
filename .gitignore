@@ -1,0 +1,27 @@
+# Gradle / build
+.gradle/
+build/
+/app/build/
+.kotlin/
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+output-metadata.json
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+.vscode/
+
+# Local config & secrets (never commit)
+local.properties
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+*.b64
+google-services.json
+.env

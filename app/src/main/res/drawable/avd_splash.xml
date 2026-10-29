@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:name="ring"
+                android:pathData="M54,28a26,26 0,1 1,0 52a26,26 0,1 1,0 -52"
+                android:strokeWidth="3.2"
+                android:strokeColor="#F2F3FF"
+                android:strokeLineCap="round"
+                android:trimPathEnd="0"
+                android:fillColor="#00000000" />
+            <group
+                android:name="needle"
+                android:pivotX="54"
+                android:pivotY="54"
+                android:rotation="-160"
+                android:scaleX="0.6"
+                android:scaleY="0.6">
+                <path android:pathData="M54,33 L60,54 L48,54 Z" android:fillColor="#FFFFFF" />
+                <path android:pathData="M54,75 L60,54 L48,54 Z" android:fillColor="#FFB4A1" />
+                <path android:pathData="M54,54m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" android:fillColor="#2A3A9C" />
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="ring">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="600"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+    <target android:name="needle">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:duration="850"
+                    android:interpolator="@android:anim/overshoot_interpolator"
+                    android:propertyName="rotation"
+                    android:valueFrom="-160"
+                    android:valueTo="35"
+                    android:valueType="floatType" />
+                <objectAnimator
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in"
+                    android:propertyName="scaleX"
+                    android:valueFrom="0.6"
+                    android:valueTo="1"
+                    android:valueType="floatType" />
+                <objectAnimator
+                    android:duration="500"
+                    android:interpolator="@android:interpolator/fast_out_slow_in"
+                    android:propertyName="scaleY"
+                    android:valueFrom="0.6"
+                    android:valueTo="1"
+                    android:valueType="floatType" />
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>
