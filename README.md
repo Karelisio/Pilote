@@ -36,18 +36,16 @@ Pilote doit être signée avec **le même keystore que Status**, pour deux raiso
 
 ### 2. Publier une version
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
+La version est dans le fichier `VERSION` (ex. `1.0.0`). Pour publier : incrémentez `VERSION`, puis poussez sur `main`.
 
-Le workflow `Release` se charge du reste :
-1. lance les tests ;
-2. construit l'APK signé (`versionName` = le tag, `versionCode` = `github.run_number`) ;
-3. vérifie la signature ;
-4. publie une **GitHub Release** avec `pilote-1.0.0.apk` et le changelog (liste des commits depuis le tag précédent).
+Le workflow `Release` se lance à chaque push sur `main` :
+1. si le tag `vX.Y.Z` existe déjà, il ne fait rien ;
+2. sinon il lance les tests ;
+3. construit l'APK signé (`versionName` = `VERSION`, `versionCode` = `github.run_number`) ;
+4. vérifie la signature ;
+5. publie la **GitHub Release** `vX.Y.Z` avec `pilote-X.Y.Z.apk` et le changelog (commits depuis la release précédente).
 
-Le workflow `CI` compile et teste chaque push.
+Le workflow `CI` compile et teste les autres branches.
 
 > **Dépôt privé ?** Le dépôt est public, donc les APK sont publiés ici. S'il devient privé, créez un dépôt **public** dédié (ex. `Karelisio/Pilote-releases`), puis ajoutez :
 > - la variable `RELEASES_REPO` = `Karelisio/Pilote-releases` ;

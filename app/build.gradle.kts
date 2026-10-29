@@ -7,9 +7,11 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Versioning: CI sets GITHUB_RUN_NUMBER (versionCode) and VERSION_NAME (from the vX.Y.Z tag).
+// Versioning: versionName comes from the VERSION file, versionCode from GITHUB_RUN_NUMBER on CI.
 val ciVersionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
-val ciVersionName = System.getenv("VERSION_NAME")?.removePrefix("v") ?: "0.1.0"
+val ciVersionName = System.getenv("VERSION_NAME")?.removePrefix("v")
+    ?: rootProject.file("VERSION").takeIf { it.exists() }?.readText()?.trim()
+    ?: "0.1.0"
 // Public repository that hosts the release APKs (owner/repo).
 val updateRepo = System.getenv("UPDATE_REPO")
     ?: (findProperty("pilote.updateRepo") as String?)

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches-ignore: [main]  # main is built by the Release workflow
     tags-ignore: ["**"]
   pull_request:
 

@@ -1,12 +1,18 @@
 name: Release
 
-# Pushing a tag vX.Y.Z builds the signed APK and publishes a GitHub Release with the changelog.
+# Every push to main reads the VERSION file. If tag vX.Y.Z does not exist yet, it builds the signed APK
+# and publishes a GitHub Release (tag + changelog). Bump VERSION to ship a new release.
 on:
   push:
-    tags: ["v*.*.*"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -20,17 +26,35 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Read VERSION
+        id: version
+        run: |
+          VERSION=$(tr -d '[:space:]' < VERSION)
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::VERSION invalide : '$VERSION' (attendu X.Y.Z)"; exit 1; fi
+          echo "VERSION_NAME=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG=v$VERSION" >> "$GITHUB_ENV"
+          if git rev-parse -q --verify "refs/tags/v$VERSION" > /dev/null; then
+            echo "Tag v$VERSION déjà publié : rien à faire (incrémentez VERSION pour une nouvelle release)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-java@v4
+        if: steps.version.outputs.skip == 'false'
         with:
           distribution: temurin
           java-version: "21"
 
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.version.outputs.skip == 'false'
 
       - name: Android SDK
+        if: steps.version.outputs.skip == 'false'
         run: (yes || true) | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
 
       - name: Check signing secrets
+        if: steps.version.outputs.skip == 'false'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -42,18 +66,16 @@ jobs:
           done
 
       - name: Decode keystore
+        if: steps.version.outputs.skip == 'false'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-
-      - name: Version
-        run: |
-          echo "VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
           echo "UPDATE_REPO=$RELEASES_REPO" >> "$GITHUB_ENV"
 
       - name: Tests and signed release build
+        if: steps.version.outputs.skip == 'false'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -61,6 +83,7 @@ jobs:
         run: ./gradlew --no-daemon testDebugUnitTest assembleRelease
 
       - name: Verify signature and rename
+        if: steps.version.outputs.skip == 'false'
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$APK" | grep -v "^WARNING"
@@ -69,24 +92,27 @@ jobs:
           rm -f "$KEYSTORE_PATH"
 
       - name: Changelog
+        if: steps.version.outputs.skip == 'false'
         run: |
-          PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
-          RANGE=${PREV:+$PREV..}$GITHUB_REF_NAME
+          PREV=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)
+          RANGE=${PREV:+$PREV..}HEAD
           {
             echo "## Pilote ${VERSION_NAME}"
             echo
-            git log --no-merges --pretty='- %s' "$RANGE" | grep -v -E '^- (Merge|Co-Authored)' || true
+            git log --no-merges --pretty='- %s' "$RANGE"
             echo
             echo "versionCode ${GITHUB_RUN_NUMBER}"
           } > CHANGELOG_RELEASE.md
           cat CHANGELOG_RELEASE.md
 
       - name: Publish GitHub Release
+        if: steps.version.outputs.skip == 'false'
         uses: softprops/action-gh-release@v2
         with:
           repository: ${{ env.RELEASES_REPO }}
           token: ${{ secrets.RELEASES_TOKEN || github.token }}
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           name: Pilote ${{ env.VERSION_NAME }}
           body_path: CHANGELOG_RELEASE.md
           files: dist/pilote-${{ env.VERSION_NAME }}.apk
