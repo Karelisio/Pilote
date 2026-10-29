@@ -13,7 +13,7 @@ val ciVersionName = System.getenv("VERSION_NAME")?.removePrefix("v") ?: "0.1.0"
 // Public repository that hosts the release APKs (owner/repo).
 val updateRepo = System.getenv("UPDATE_REPO")
     ?: (findProperty("pilote.updateRepo") as String?)
-    ?: "karelisio/pilote"
+    ?: "Karelisio/Pilote"
 val keystorePath: String? = System.getenv("KEYSTORE_PATH")
 
 android {
